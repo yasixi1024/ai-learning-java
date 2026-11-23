@@ -5,8 +5,8 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      responses-path: ${OPENAI_RESPONSES_PATH:/v1/responses}
       chat:
-        completions-path: ${OPENAI_CHAT_COMPLETIONS_PATH:/v1/chat/completions}
         options:
           model: gpt-4o-mini
           temperature: 0.7
