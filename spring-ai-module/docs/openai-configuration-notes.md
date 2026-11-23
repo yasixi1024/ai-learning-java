@@ -32,14 +32,22 @@ mvn spring-boot:run
 
 **如果 `OPENAI_BASE_URL` 指向代理服务，可能需要在末尾添加 `/openai` 等后缀，以标明使用哪家的 API。** 具体前缀由代理服务的接口约定决定；缺少前缀可能导致请求路由错误，出现 **HTTP 404** 等调用错误。
 
-当前项目在 `src/main/resources/application.yml` 中配置的默认聊天路径为 `/v1/chat/completions`。对于聊天接口位于 `/openai/v1/chat/completions` 的代理，可以这样组合：
+当前项目通过 Spring AI `ChatClient` 和自定义 `ChatModel` 适配器调用 **Responses API**。在 `src/main/resources/application.yml` 中配置的默认路径为 `/v1/responses`。对于 Responses 接口位于 `/openai/v1/responses` 的代理，可以这样组合：
 
 | 配置项 | 示例 |
 | --- | --- |
 | `OPENAI_BASE_URL` | `https://proxy.example.com/openai` |
-| 聊天接口路径 | `/v1/chat/completions` |
-| 最终请求地址 | `https://proxy.example.com/openai/v1/chat/completions` |
+| Responses 接口路径 | `/v1/responses` |
+| 最终请求地址 | `https://proxy.example.com/openai/v1/responses` |
 
-项目也支持通过 `OPENAI_CHAT_COMPLETIONS_PATH` 覆盖聊天接口路径。如果已将它设置为 `/openai/v1/chat/completions`，则基础地址应只填写 `https://proxy.example.com`。
+项目也支持通过 **`OPENAI_RESPONSES_PATH`** 覆盖接口路径。如果已将它设置为 `/openai/v1/responses`，则基础地址应只填写 `https://proxy.example.com`。旧的 `OPENAI_CHAT_COMPLETIONS_PATH` 不再使用。
 
-**基础地址与接口路径需要配套配置，避免重复拼接 `/openai` 或 `/v1`。** 直连 OpenAI 时，基础地址可使用 `https://api.openai.com`，搭配默认的 `/v1/chat/completions` 路径。
+**基础地址与接口路径需要配套配置，避免重复拼接 `/openai` 或 `/v1`。** 直连 OpenAI 时，基础地址可使用 `https://api.openai.com`，搭配默认的 `/v1/responses` 路径。
+
+## Responses 请求与项目接口
+
+项目对外仍提供 **`POST /api/v1/chat`**，请求为 `{"message":"你好"}`，响应为 `{"reply":"模型回答"}`。
+
+适配器向上游发送 `model`、`input` 和 `temperature`，其中 `input` 为包含 `role` 和 `content` 的文本消息数组；收到响应后，从 `output` 中提取助手消息的 `output_text`，并处理拒绝回答的 `refusal` 内容。**当前适配器支持同步文本问答**，未实现流式、多模态或工具执行。
+
+Responses 的请求和响应结构与 Chat Completions 不同，**不能仅修改旧接口的 URL 来完成迁移**。适配器会检查响应状态，遇到未完成的响应或缺少回答文本时抛出异常，避免将异常结果作为正常回答返回。
