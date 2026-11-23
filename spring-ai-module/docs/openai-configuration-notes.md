@@ -51,3 +51,14 @@ mvn spring-boot:run
 适配器向上游发送 `model`、`input` 和 `temperature`，其中 `input` 为包含 `role` 和 `content` 的文本消息数组；收到响应后，从 `output` 中提取助手消息的 `output_text`，并处理拒绝回答的 `refusal` 内容。**当前适配器支持同步文本问答**，未实现流式、多模态或工具执行。
 
 Responses 的请求和响应结构与 Chat Completions 不同，**不能仅修改旧接口的 URL 来完成迁移**。适配器会检查响应状态，遇到未完成的响应或缺少回答文本时抛出异常，避免将异常结果作为正常回答返回。
+
+## 成语接龙
+
+向 `POST /api/v1/idiomChain` 发送 JSON。接口沿用上述 OpenAI 配置，通过 Responses API 选出成语。
+
+- `{"action":"init"}` 随机选取开局成语。请求可省略 `message`，传入时也会忽略。
+- `{"action":"relay","message":"春华秋实"}` 接一个四字成语，例如 `{"message":"石沉大海"}`。输入成语末字和输出成语首字在各自词中的汉语拼音必须相同，忽略声调。
+
+缺少或传入其他 `action`、接龙时输入为空或词库未收录，均返回 HTTP 400。词库中没有可接的成语时返回 HTTP 422。OpenAI 调用失败或返回的成语不符合要求时返回 HTTP 502。
+
+词库从 [chinese-xinhua 的成语数据](https://github.com/pwxcoo/chinese-xinhua/blob/master/data/idiom.json) 提取四字词条和首尾字的无声调拼音，许可证随词库分发。
